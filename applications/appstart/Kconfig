@@ -1,0 +1,24 @@
+config APPLICATION_APPSTART
+	tristate "App start"
+	default n
+	---help---
+		Enable the App start application
+
+if APPLICATION_APPSTART
+
+config APPLICATION_APPSTART_PROGNAME
+	string "Program name"
+	default "appstart"
+	---help---
+		This is the name of the program that will be used when the NSH ELF
+		program is installed.
+
+config APPLICATION_APPSTART_PRIORITY
+	int "App start task priority"
+	default 100
+
+config APPLICATION_APPSTART_STACKSIZE
+	int "App start stack size"
+	default 2048
+
+endif

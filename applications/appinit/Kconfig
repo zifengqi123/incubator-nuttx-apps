@@ -1,0 +1,24 @@
+config APPLICATION_APPINIT
+	tristate "App Init"
+	default n
+	---help---
+		Enable the App Init application
+
+if APPLICATION_APPINIT
+
+config APPLICATION_APPINIT_PROGNAME
+	string "Program name"
+	default "appinit"
+	---help---
+		This is the name of the program that will be used when the NSH ELF
+		program is installed.
+
+config APPLICATION_APPINIT_PRIORITY
+	int "App Init task priority"
+	default 100
+
+config APPLICATION_APPINIT_STACKSIZE
+	int "App Init stack size"
+	default 2048
+
+endif

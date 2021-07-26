@@ -1,0 +1,3 @@
+ifneq ($(CONFIG_APPLICATION_APPINIT),)
+CONFIGURED_APPS += $(APPDIR)/applications/appinit
+endif
