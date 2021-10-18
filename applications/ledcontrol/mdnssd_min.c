@@ -33,14 +33,25 @@
 */
 
 
-
 #include "mdnssd_min.h"
+
+// #include <nuttx/config.h>
+// #include <stdio.h>
+// #include <stdlib.h>
+
+// #include <errno.h>
+// #include "led_ctrl_curl.h"
+// #include "led_ctrl_pthread.h"
+// #include "led_ctrl_elf.h"
 
 // TODO grrr, global variables
 // The name we're currently querying for;
 char* query_for;
 // is debug mode enabled?
 int debug_mode = 0;
+
+// #define debug(format, ...)   do { if (1) syslog(LOG_WARNING, format, ##__VA_ARGS__); } while (0)
+
 
 int debug(const char* format, ...) {
   va_list args;
@@ -49,11 +60,25 @@ int debug(const char* format, ...) {
   if(!debug_mode) {
     return 0;
   }
+
   va_start(args, format);
   ret = vfprintf(stderr, format, args);
-
   va_end(args);
+
   return ret;
+}
+
+void my_free(void *ptr)
+{
+  free(ptr);
+  printf("--my_free: %p\n", ptr);
+}
+
+void* my_malloc(int size)
+{
+  void *ptr =  malloc(size);
+  printf("--my_malloc: %p\n", ptr);
+  return ptr;
 }
 
 long timestart = 0;
@@ -93,14 +118,16 @@ FoundAnswer* add_new_answer(FoundAnswerList* alist) {
   if(alist->length >= MAX_ANSWERS) {
     return NULL;
   }
-  a = malloc(sizeof(FoundAnswer));
+  a = my_malloc(sizeof(FoundAnswer));
   if(!a) {
     fail("Could not allocate memory for a found answer");
     return NULL;
   }
+  memset(a, 0, sizeof(FoundAnswer));
 
   a->name = NULL;
   a->hostname = NULL;
+  a->rr = NULL;
   a->port = 0;
   a->srv_query_sent = 0;
   a->a_query_sent = 0;
@@ -123,15 +150,29 @@ FoundAnswer* add_answer(FoundAnswerList* alist, FoundAnswer* a) {
 void clear_answer_list(FoundAnswerList* alist) {
   int i;
   for(i=0; i < MAX_ANSWERS; i++) {
-    if(alist->answers[i]) {
-      if(alist->answers[i]->name) {
+    if(alist->answers[i] != NULL) {
+      if(alist->answers[i]->name != NULL) {
         // TODO there may be more that needs freeing
-        free(alist->answers[i]->name);
+        my_free(alist->answers[i]->name);
       }
-      free(alist->answers[i]);
+
+      if(alist->answers[i]->hostname != NULL) {
+        my_free(alist->answers[i]->hostname);
+      }
+
+      if(alist->answers[i]->rr != NULL) {
+        if(alist->answers[i]->rr->name != NULL) {
+          my_free(alist->answers[i]->rr->name);
+        }
+        my_free(alist->answers[i]->rr);
+      }
+
+      my_free(alist->answers[i]);
     }
   }
   alist->length = 0;
+  debug("clear_answer_list---done..\n");
+
 }
 
 char* prepare_query_string(char* name) {
@@ -141,11 +182,12 @@ char* prepare_query_string(char* name) {
   int len = strlen(name);
   char* result;
 
-  result = malloc(len + 2);
+  result = my_malloc(len + 2);
   if(!result) {
     fail("failed to allocate memory for parsed hostname");
     return NULL;
   }
+  memset(result, 0, len+2);
 
   count = 0;
   for(i=0; i < len+1; i++) {
@@ -175,12 +217,13 @@ char* parse_hostname(char* hostname) {
   if((hostname_length < 1) || (hostname_length > DNS_MAX_HOSTNAME_LENGTH)) {
     return NULL;
   }
-  result = malloc(hostname_length);
+  result = my_malloc(hostname_length);
   if(!result) {
     fail("failed to allocate memory for parsed hostname");
     return NULL;
   }
-  
+  memset(result, 0, hostname_length);
+
   for(i=0; i < hostname_length; i++) {
     
     if(hostname[i] == '.') { // dot
@@ -192,7 +235,7 @@ char* parse_hostname(char* hostname) {
       
       result[i] = hostname[i];
     } else {
-      free(result);
+      my_free(result);
       return NULL;
     }
   }
@@ -200,21 +243,24 @@ char* parse_hostname(char* hostname) {
 }
 
 mDNSMessage* mdns_make_message() {
-  mDNSMessage* msg = malloc(sizeof(mDNSMessage));
+  mDNSMessage* msg = my_malloc(sizeof(mDNSMessage));
   if(!msg) {
     fail("failed to allocate memory for mDNS message");
     return NULL;
   }
+  memset(msg, 0, sizeof(mDNSMessage));
   return msg;
 }
 
 // expects host byte_order
 mDNSFlags* mdns_parse_header_flags(uint16_t data) {
-  mDNSFlags* flags = malloc(sizeof(mDNSFlags));
+  mDNSFlags* flags = my_malloc(sizeof(mDNSFlags));
   if(!flags) {
     fail("could not allocate memory for parsing header flags");
     return NULL;
   }
+  memset(flags, 0, sizeof(mDNSFlags));
+
   flags->rcode = data & 0xf;
   flags->cd = (data >> 4) & 1;
   flags->ad = (data >> 5) & 1;
@@ -265,11 +311,12 @@ char* mdns_pack_question(mDNSQuestion* q, size_t* size) {
   *size = name_length + 2 + 2;
 
   // 1 char for terminating \0, 2 for qtype and 2 for qclass
-  packed = malloc(*size);
+  packed = my_malloc(*size);
   if(!packed) {
     fail("could not allocate memory for DNS question");
     return NULL;
   }
+  memset(packed, 0, *size);
 
   memcpy(packed, q->qname, name_length);
 
@@ -313,7 +360,7 @@ void mdns_message_print(mDNSMessage* msg) {
   debug("ARCOUNT: %u\n", msg->ar_count);
   debug("Resource records:\n");
 
-  free(flags);
+  my_free(flags);
 }
 
 // parse question section
@@ -325,9 +372,13 @@ int mdns_parse_question(char* message, char* data, int size) {
   cur = data;
   // TODO check for invalid length
   q.qname = parse_rr_name(message, data, &parsed);
+  //to free q.qname? ...
   cur += parsed;
   if(parsed > size) {
     fail("qname is too long");
+    if(q.qname != NULL) {
+      my_free(q.qname);
+    }
     return -1;
   }
 
@@ -336,6 +387,9 @@ int mdns_parse_question(char* message, char* data, int size) {
   cur += 2;
   parsed += 2;
   if(parsed > size) {
+    if(q.qname != NULL) {
+      my_free(q.qname);
+    }
     return 0;
   }
 
@@ -344,9 +398,16 @@ int mdns_parse_question(char* message, char* data, int size) {
   cur += 2;
   parsed += 2;
   if(parsed > size) {
+    if(q.qname != NULL) {
+      my_free(q.qname);
+    }
     return 0;
   }
-  
+
+  if(q.qname != NULL) {
+    my_free(q.qname);
+  }
+  debug("mdns_parse_question parsed: %d\n", parsed);
   return parsed;
 }
 
@@ -366,7 +427,6 @@ int mdns_parse_rr_ptr(char* message, char* data, FoundAnswer* a) {
   int parsed = 0;
 
   a->name = parse_rr_name(message, data, &parsed);
-
   //  a->type = DNS_RR_TYPE_PTR;
 
   debug("        PTR: %s\n", a->name);
@@ -437,11 +497,12 @@ char* parse_rr_name(char* message, char* name, int* parsed) {
   int did_jump = 0;
   int pars = 0;
 
-  out = malloc(MAX_RR_NAME_SIZE);
+  out = my_malloc(MAX_RR_NAME_SIZE);
   if(!out) {
     fail("could not allocate memory for resource record name");
     return NULL;
   }
+  memset(out, 0, MAX_RR_NAME_SIZE);
 
   while(1) {
     offset = get_offset(name);
@@ -454,7 +515,7 @@ char* parse_rr_name(char* message, char* name, int* parsed) {
       dereference_count++;
       if(dereference_count >= MAX_DEREFERENCE_COUNT) {
         // don't allow messages to crash this app
-        free(out);
+        my_free(out);
         return NULL;
       }
       continue;
@@ -464,7 +525,7 @@ char* parse_rr_name(char* message, char* name, int* parsed) {
       out[out_i++] = '.';
 
       if(out_i+1 >= MAX_RR_NAME_SIZE) {
-        free(out);
+        my_free(out);
         return NULL;
       }
     }
@@ -477,7 +538,7 @@ char* parse_rr_name(char* message, char* name, int* parsed) {
     for(i=0; i < label_len; i++) {
       out[out_i++] = name[i];
       if(out_i+1 >= MAX_RR_NAME_SIZE) {
-        free(out);
+        my_free(out);
         return NULL;
       }
       if(!did_jump) {
@@ -521,9 +582,9 @@ void free_resource_record(mDNSResourceRecord* rr) {
     return;
   }
   if(rr->name) {
-    free(rr->name);
+    my_free(rr->name);
   }
-  free(rr);
+  my_free(rr);
 }
 
 // parse a resource record
@@ -534,7 +595,9 @@ int mdns_parse_rr(char* message, char* rrdata, int size, FoundAnswerList* alist,
   char* cur = rrdata;
   FoundAnswer* answer;
 
-  rr = malloc(sizeof(mDNSResourceRecord));
+  rr = my_malloc(sizeof(mDNSResourceRecord));
+  memset(rr, 0, sizeof(mDNSResourceRecord));
+
   rr->name = NULL;
 
   rr->name = parse_rr_name(message, rrdata, &parsed);
@@ -587,13 +650,25 @@ int mdns_parse_rr(char* message, char* rrdata, int size, FoundAnswerList* alist,
   
   if(is_answer) {
     answer = add_new_answer(alist);
-    answer->rr = rr;
-    mdns_parse_rdata_type(message, rr, answer);
+    // answer->rr = rr;
+    // mdns_parse_rdata_type(message, rr, answer);
+    //fq modify
+    if(answer != NULL) {
+      answer->rr = rr;
+      mdns_parse_rdata_type(message, rr, answer);
+    }
+    else{
+      debug("---add new answer is NULL-\n");
+      free_resource_record(rr);
+    }
+  }
+  else {
+    debug("---is_answer is 0 -\n");
+    free_resource_record(rr);
   }
 
   debug("    ------------------------------\n");
-
-  //  free_resource_record(rr);
+  
   return parsed;
 }
 
@@ -662,6 +737,9 @@ mDNSMessage* mdns_build_query_message(char* query_str, uint16_t query_type) {
   msg->id = 0; // should be 0 for multicast query messages
   msg->flags = htons(mdns_pack_header_flags(flags));
   msg->qd_count = htons(1); // one question
+  msg->an_count = 0;
+  msg->ns_count = 0;
+  msg->ar_count = 0;
 
   question.qname = query_str;
 
@@ -687,11 +765,12 @@ char* mdns_pack_message(mDNSMessage* msg, size_t* pack_length) {
     return NULL;
   }
 
-  pack = malloc(*pack_length);
+  pack = my_malloc(*pack_length);
   if(!pack) {
     fail("failed to allocate data for packed mDNS message");
     return NULL;
   }
+  memset(pack, 0, *pack_length);
 
   memcpy(pack, msg, DNS_HEADER_SIZE);
   memcpy(pack + DNS_HEADER_SIZE, msg->data, msg->data_size);
@@ -789,6 +868,27 @@ int send_query(int sock, char* query_arg, uint16_t query_type) {
   // send query message
   res = sendto(sock, data, data_size, 0, (struct sockaddr *) &addr, addrlen);
   
+  //to free data?
+  if(data != NULL)
+  {
+    my_free(data);
+  }
+  //to free query_str?
+  if(query_str != NULL)
+  {
+    my_free(query_str);
+  }
+  //to free msg->data?
+  if(msg->data != NULL)
+  {
+    my_free(msg->data);
+  }
+  //to free msg?
+  if(msg != NULL)
+  {
+    my_free(msg);
+  }
+
   return res;
 }
 
@@ -833,11 +933,15 @@ int init_socket() {
   mreq.imr_multiaddr.s_addr = inet_addr(MDNS_MULTICAST_ADDRESS);
   mreq.imr_interface.s_addr = htonl(INADDR_ANY); // TODO understand this  
   debug("Setting socket options for multicast\n");
-  if(setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
-    fail("setsockopt failed");
-    close(sock);
-    return -4;
-  } 
+
+  //fengqi modify
+  setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
+
+  // if(setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
+  //   fail("setsockopt failed");
+  //   close(sock);
+  //   return -4;
+  // } 
 
   return sock;
 }
@@ -877,6 +981,7 @@ void complete_answer(int sock, FoundAnswerList* alist, FoundAnswer* a) {
         if(strcmp(a->name, b->rr->name) == 0) {
           a->hostname = b->hostname;
           a->port = b->port;
+          b->hostname = NULL;
         }
       }
     } else {
@@ -954,11 +1059,12 @@ void main_loop(int sock, char* query_arg, int min_answers, FoundAnswerList* alis
   addr.sin_addr.s_addr = inet_addr(MDNS_MULTICAST_ADDRESS);
   addrlen = sizeof(addr);
 
-  recvdata = malloc(DNS_BUFFER_SIZE);
+  recvdata = my_malloc(DNS_BUFFER_SIZE);
   if(!recvdata) {
     fail("could not allocate memory for temporary storage");
     goto ERRT;
   }
+  memset(recvdata, 0, DNS_BUFFER_SIZE);
 
   FD_ZERO(&active_fd_set);
   FD_SET(sock, &active_fd_set);
@@ -989,7 +1095,7 @@ void main_loop(int sock, char* query_arg, int min_answers, FoundAnswerList* alis
       //   break;
       // }
 
-      if(getTimestamp() - timestart > 10)
+      if(getTimestamp() - timestart > runtime->tv_sec)
       {
         debug("time is up!");
         goto ERRT;
@@ -1046,7 +1152,7 @@ ERRT:
 
   if(recvdata != NULL)
   {
-      free(recvdata);
+      my_free(recvdata);
   }
   
   return;
@@ -1068,7 +1174,7 @@ int getService(char * srv_name, char *ip, int *port)
   timestart = getTimestamp();
 
   // default runtime 3 seconds
-  runtime.tv_sec = 3;
+  runtime.tv_sec = 10;
   runtime.tv_usec = 0;
 
   min_answers = 1;
@@ -1090,9 +1196,7 @@ int getService(char * srv_name, char *ip, int *port)
   // assume it's a query for a service type
   if(query_arg[0] == '_') {
 
-    // ret = send_query(sock, query_arg, DNS_RR_TYPE_PTR);
-    ret = send_query(sock, query_arg, DNS_RR_TYPE_SRV);
-
+    ret = send_query(sock, query_arg, DNS_RR_TYPE_PTR);
 
   } else { // this is a query for a host name
 

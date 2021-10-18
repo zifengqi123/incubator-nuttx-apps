@@ -93,7 +93,7 @@ int onLedStatus(FAR char * url, cJSON *in)
   sprintf(post_buff, "%s", pin);
   if(pin != NULL)
   {
-    free(pin);
+    cJSON_free(pin);
   }
   
   memset(buffer, 0, 1024);

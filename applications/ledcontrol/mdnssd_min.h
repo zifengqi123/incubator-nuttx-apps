@@ -7,11 +7,11 @@
 #define MDNS_MULTICAST_ADDRESS "224.0.0.251"
 #define MDNS_PORT (5353)
 // #define DNS_BUFFER_SIZE (32768)
-#define DNS_BUFFER_SIZE (1024)
+#define DNS_BUFFER_SIZE (2048)
 
 // TODO find the right number for this
 //#define DNS_MESSAGE_MAX_SIZE (4096)
-#define DNS_MESSAGE_MAX_SIZE (1024)
+#define DNS_MESSAGE_MAX_SIZE (2048)
 
 // DNS Resource Record types
 // (RFC 1035 section 3.2.2)
@@ -29,7 +29,7 @@
 
 // The maximum number of answers allowed
 // #define MAX_ANSWERS (200)
-#define MAX_ANSWERS (10)
+#define MAX_ANSWERS (20)
 
 #define MAX_RUNTIME (86400)
 

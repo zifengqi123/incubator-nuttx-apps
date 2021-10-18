@@ -138,6 +138,7 @@ int elf_writeFileToFlash(FAR char* file, uint32_t sz, uint32_t *addr)
 
     uint32_t addr_t = *addr;
 
+    usleep(200*100);
     fd = open(file, O_RDONLY, 0644);
 
     if (fd < 0)
@@ -184,6 +185,7 @@ int elf_writeFileToFlash(FAR char* file, uint32_t sz, uint32_t *addr)
             i += FLASH_BUFFER_SIZE;
             addr_t += FLASH_BUFFER_SIZE;
         }
+        usleep(200*100);
     }
     
     //写crc16
@@ -280,6 +282,7 @@ int elf_loadFlashToFile(uint32_t *addr, FAR char* file)
     cnt = 0;
     wret = 0;
 
+    usleep(200*100);
     ret = up_progmem_read(addr_t, &sz, sizeof(uint32_t));
     syslog(LOG_WARNING, "load Flash To File %x size : %d\n", addr_t, sz);
     if(ret < 0 || sz <= 0)
@@ -351,6 +354,7 @@ int elf_loadFlashToFile(uint32_t *addr, FAR char* file)
             ret = -113;
             goto exit;
         }
+        usleep(200*100);
 
     }
 

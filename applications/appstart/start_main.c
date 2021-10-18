@@ -2,9 +2,10 @@
 
 int main(int argc, FAR char *argv[])
 {
-    syslog(LOG_WARNING, "----start user define main---\n");
+    printf("----start user define main---\n");
 
     int ret = 0;
+    int start = 0;
 
     elf_sys_rmfile(RM_APP_CMD);
     elf_sys_rmfile(RM_CFG_CMD);
@@ -13,14 +14,14 @@ int main(int argc, FAR char *argv[])
     ret = elf_checkInitFlash();
     if(ret != 0)
     {
-        syslog(LOG_ERR, "ERROR: Application not init.\n");
+        printf("ERROR: Application not init.\n");
         return -1;
     }
 
     ret = elf_checkAppcfgFlash();
     if(ret != 0)
     {
-        syslog(LOG_ERR, "ERROR: check application fail.\n");
+        printf("ERROR: check application fail.\n");
         cJSON *json = elf_getInitParam();
         cJSON *ser = cJSON_GetObjectItem(json, "init_fs_ser");
         char* url = cJSON_GetStringValue(ser);
@@ -29,13 +30,24 @@ int main(int argc, FAR char *argv[])
         cJSON_free(json);
         if(ret != 0)
         {
-            syslog(LOG_ERR, "ERROR: to init fail %d.\n", ret);
+            printf("ERROR: to init fail %d.\n", ret);
         }
-        elf_sys_reboot();
     }
     else
     {
-        elf_sys_execapp();
+        cJSON *json = elf_getConfig();
+        cJSON *flag = cJSON_GetObjectItem(json, "not_autos");
+        if(flag != NULL)
+        {
+            start = flag->valueint;
+            
+        }
+        
+        if(start != 1)
+        {
+            elf_sys_execapp();
+        }
+        
     }
 
     return 0;

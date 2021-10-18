@@ -70,21 +70,21 @@ int main(int argc, FAR char *argv[])
     }
     else if(strcmp(argv[ndx], "-s") == 0)
     {
-        syslog(LOG_WARNING, "----start app---\n");
+        printf("----start app---\n");
 
         int ret = 0;
 
         ret = elf_checkInitFlash();
         if(ret != 0)
         {
-            syslog(LOG_ERR, "ERROR: Application not init.\n");
+            printf("ERROR: Application not init.\n");
             return -1;
         }
 
         ret = elf_checkAppcfgFlash();
         if(ret != 0)
         {
-            syslog(LOG_ERR, "ERROR: check application fail.\n");
+            printf("ERROR: check application fail.\n");
             cJSON *json = elf_getInitParam();
             cJSON *ser = cJSON_GetObjectItem(json, "init_fs_ser");
             char* url = cJSON_GetStringValue(ser);
@@ -93,7 +93,7 @@ int main(int argc, FAR char *argv[])
             cJSON_free(json);
             if(ret != 0)
             {
-                syslog(LOG_ERR, "ERROR: to init fail %d.\n", ret);
+                printf("ERROR: to init fail %d.\n", ret);
                 return -2;
             }
         }

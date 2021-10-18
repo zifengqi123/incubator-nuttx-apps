@@ -218,11 +218,14 @@ void pth_usleep(uint32_t utm)
     
 }
 
-void getDelayTime(int level, int *h, int *l) 
+void getDelayTime(double level, int *h, int *l) 
 {
-    float t = level;
-    t = t/100.0;
-    float per = ledPer + (0.85-ledPer) * t;
+    double t = level;
+    // t = t/100.0;
+    // float per = ledPer + (0.85-ledPer) * t;
+
+    t = (t > 13.2) ? 13.2 : t;
+    double per = t /13.2;     //level重定义为电压值
 
     *h = all_t * per;
     *l = all_t - (*h);
@@ -268,7 +271,7 @@ void pth_led1_callback()
 
                 sts->isOn = new->isOn;
                 sts->level = new->level;
-                printf("LED %d is change status: %d, %d\n", new->index, new->isOn, new->level);
+                printf("LED %d is change status: %d, %f\n", new->index, new->isOn, new->level);
             }
 
             ioctl(fd, GPIOC_WRITE, (unsigned long)true);
@@ -324,7 +327,7 @@ void pth_led2_callback()
 
                 sts->isOn = new->isOn;
                 sts->level = new->level;
-                printf("LED %d is change status: %d, %d\n", new->index, new->isOn, new->level);
+                printf("LED %d is change status: %d, %f\n", new->index, new->isOn, new->level);
             }
 
             ioctl(fd, GPIOC_WRITE, (unsigned long)true);
@@ -379,7 +382,7 @@ void pth_led3_callback()
 
                 sts->isOn = new->isOn;
                 sts->level = new->level;
-                printf("LED %d is change status: %d, %d\n", new->index, new->isOn, new->level);
+                printf("LED %d is change status: %d, %f\n", new->index, new->isOn, new->level);
             }
 
             ioctl(fd, GPIOC_WRITE, (unsigned long)true);
@@ -434,7 +437,7 @@ void pth_led4_callback()
 
                 sts->isOn = new->isOn;
                 sts->level = new->level;
-                printf("LED %d is change status: %d, %d\n", new->index, new->isOn, new->level);
+                printf("LED %d is change status: %d, %f\n", new->index, new->isOn, new->level);
             }
 
             ioctl(fd, GPIOC_WRITE, (unsigned long)true);
@@ -489,7 +492,7 @@ void pth_led5_callback()
 
                 sts->isOn = new->isOn;
                 sts->level = new->level;
-                printf("LED %d is change status: %d, %d\n", new->index, new->isOn, new->level);
+                printf("LED %d is change status: %d, %f\n", new->index, new->isOn, new->level);
             }
 
             ioctl(fd, GPIOC_WRITE, (unsigned long)true);
@@ -544,7 +547,7 @@ void pth_led6_callback()
 
                 sts->isOn = new->isOn;
                 sts->level = new->level;
-                printf("LED %d is change status: %d, %d\n", new->index, new->isOn, new->level);
+                printf("LED %d is change status: %d, %f\n", new->index, new->isOn, new->level);
             }
 
             ioctl(fd, GPIOC_WRITE, (unsigned long)true);
@@ -599,7 +602,7 @@ void pth_led7_callback()
 
                 sts->isOn = new->isOn;
                 sts->level = new->level;
-                printf("LED %d is change status: %d, %d\n", new->index, new->isOn, new->level);
+                printf("LED %d is change status: %d, %f\n", new->index, new->isOn, new->level);
             }
 
             ioctl(fd, GPIOC_WRITE, (unsigned long)true);
@@ -654,7 +657,7 @@ void pth_led8_callback()
 
                 sts->isOn = new->isOn;
                 sts->level = new->level;
-                printf("LED %d is change status: %d, %d\n", new->index, new->isOn, new->level);
+                printf("LED %d is change status: %d, %f\n", new->index, new->isOn, new->level);
             }
 
             ioctl(fd, GPIOC_WRITE, (unsigned long)true);

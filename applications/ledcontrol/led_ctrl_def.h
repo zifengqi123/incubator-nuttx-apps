@@ -6,7 +6,7 @@ struct LED_STATUS
 {
     int index;
     bool isOn;
-    int level;
+    double level;
     bool isChange;
     int state;
 };
