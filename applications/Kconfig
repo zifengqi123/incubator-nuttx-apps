@@ -6,8 +6,8 @@
 #
 
 menu "Applications"
+source "/home/fengqi/myNuttx/apps/applications/appinit/Kconfig"
+source "/home/fengqi/myNuttx/apps/applications/appstart/Kconfig"
 source "/home/fengqi/myNuttx/apps/applications/ledcontrol/Kconfig"
 source "/home/fengqi/myNuttx/apps/applications/mdnssd_min/Kconfig"
-source "/home/fengqi/myNuttx/apps/applications/appstart/Kconfig"
-source "/home/fengqi/myNuttx/apps/applications/appinit/Kconfig"
 endmenu # Applications
