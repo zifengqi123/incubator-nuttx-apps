@@ -69,8 +69,8 @@
 #  error "You must not disable loadable modules via CONFIG_BINFMT_DISABLE in your configuration file"
 #endif
 
-#ifndef CONFIG_LIB_BOARDCTL
-#  error "This configuration requires CONFIG_LIB_BOARDCTL"
+#ifndef CONFIG_BOARDCTL
+#  error "This configuration requires CONFIG_BOARDCTL"
 #endif
 
 #ifndef CONFIG_BOARDCTL_APP_SYMTAB
@@ -256,7 +256,7 @@ int main(int argc, FAR char *argv[])
    * the ROMFS mountpoint.
    */
 
-#if defined(CONFIG_LIB_ENVPATH) && !defined(CONFIG_PATH_INITIAL)
+#if defined(CONFIG_LIBC_ENVPATH) && !defined(CONFIG_PATH_INITIAL)
   setenv("PATH", MOUNTPT, 1);
 #endif
 
@@ -302,7 +302,7 @@ int main(int argc, FAR char *argv[])
    * search the PATH variable to find the executable.
    */
 
-#ifdef CONFIG_LIB_ENVPATH
+#ifdef CONFIG_LIBC_ENVPATH
   filepath = g_hello_argv[0];
 #else
   snprintf(fullpath, 128, "%s/%s", MOUNTPT, g_hello_argv[0]);
@@ -401,7 +401,7 @@ int main(int argc, FAR char *argv[])
    * search the PATH variable to find the executable.
    */
 
-#ifdef CONFIG_LIB_ENVPATH
+#ifdef CONFIG_LIBC_ENVPATH
   filepath = g_redirect_argv[0];
 #else
   snprintf(fullpath, 128, "%s/%s", MOUNTPT, g_redirect_argv[0]);

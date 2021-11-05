@@ -153,12 +153,12 @@ static void print_gps(const char *buffer, const char *name)
 static void usage(void)
 {
   printf("sensortest [arguments...] <command>\n");
-  printf("\t[-h      ]  sensotest commands help\n");
+  printf("\t[-h      ]  sensortest commands help\n");
   printf("\t[-i <val>]  The output data period of sensor in us\n");
   printf("\t            default: 1000000\n");
   printf("\t[-b <val>]  The maximum report latency of sensor in us\n");
   printf("\t            default: 0\n");
-  printf("\t[-n <val>]  The specify number of output data\n");
+  printf("\t[-n <val>]  The number of output data\n");
   printf("\t            default: 0\n");
 
   printf(" Commands:\n");
@@ -244,7 +244,7 @@ int main(int argc, FAR char *argv[])
 
       if (!len)
         {
-          printf("The sensor node name:%s is invaild\n", name);
+          printf("The sensor node name:%s is invalid\n", name);
           usage();
           ret = -EINVAL;
           goto name_err;
@@ -273,26 +273,14 @@ int main(int argc, FAR char *argv[])
       goto open_err;
     }
 
-  ret = ioctl(fd, SNIOC_ACTIVATE, 1);
-  if (ret < 0)
-    {
-      ret = -errno;
-      if (ret != -ENOTTY)
-        {
-          printf("Failed to enable sensor:%s, ret:%s\n",
-                 devname, strerror(errno));
-          goto ctl_err;
-        }
-    }
-
   ret = ioctl(fd, SNIOC_SET_INTERVAL, &interval);
   if (ret < 0)
     {
       ret = -errno;
-      if (ret != -ENOTTY)
+      if (ret != -ENOTSUP)
         {
           printf("Failed to set interval for sensor:%s, ret:%s\n",
-                devname, strerror(errno));
+                 devname, strerror(errno));
           goto ctl_err;
         }
     }
@@ -301,10 +289,22 @@ int main(int argc, FAR char *argv[])
   if (ret < 0)
     {
       ret = -errno;
-      if (ret != -ENOTTY)
+      if (ret != -ENOTSUP)
         {
           printf("Failed to batch for sensor:%s, ret:%s\n",
-                devname, strerror(errno));
+                 devname, strerror(errno));
+          goto ctl_err;
+        }
+    }
+
+  ret = ioctl(fd, SNIOC_ACTIVATE, 1);
+  if (ret < 0)
+    {
+      ret = -errno;
+      if (ret != -ENOTSUP)
+        {
+          printf("Failed to enable sensor:%s, ret:%s\n",
+                 devname, strerror(errno));
           goto ctl_err;
         }
     }

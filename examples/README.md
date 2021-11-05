@@ -209,6 +209,10 @@ Attempts to keep the system busy by passing data through a pipe in loop back
 mode. This may be useful if you are trying run down other problems that you
 think might only occur when the system is very busy.
 
+## `cordic`
+
+A simple test of the CORDIC character driver.
+
 ## `dac` Write to DAC
 
 This is a tool for writing values to DAC device.
@@ -544,7 +548,7 @@ This is a simple test to `debug/verify` the USB host HID keyboard class driver.
   These special keys include such things as up/down arrows, home and end keys,
   etc. If this not defined, only 7-bit printable and control ASCII characters
   will be provided to the user. Requires `CONFIG_HIDKBD_ENCODED` and
-  `CONFIG_LIB_KBDCODEC`.
+  `CONFIG_LIBC_KBDCODEC`.
 
 ## `igmp` Trivial IGMP
 
@@ -925,7 +929,7 @@ are not as expected:
 CONFIG_DISABLE_MQUEUE=n
 CONFIG_DISABLE_PTHREAD=n
 CONFIG_NX_BLOCKING=y
-CONFIG_LIB_BOARDCTL=y
+CONFIG_BOARDCTL=y
 ```
 
 ## `nxterm` Display NuttShell (NSH) as NX Console
